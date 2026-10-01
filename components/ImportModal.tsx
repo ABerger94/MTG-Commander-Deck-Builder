@@ -63,15 +63,19 @@ interface Props {
   deckName: string;
 }
 
-type Tab = 'import' | 'export';
+type Tab = 'import' | 'moxfield' | 'export';
+
+const TAB_LABELS: Record<Tab, string> = { import: 'Import', moxfield: 'Moxfield', export: 'Export' };
 
 export function ImportModal({ open, onClose, onImport, exportCommander, exportCards, deckName }: Props) {
   const [tab, setTab] = useState<Tab>('import');
   const [text, setText] = useState('');
+  const [moxfieldUrl, setMoxfieldUrl] = useState('');
   const [firstIsCommander, setFirstIsCommander] = useState(true);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState('');
   const [outcome, setOutcome] = useState<ImportOutcome | null>(null);
+  const [moxfieldError, setMoxfieldError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   if (!open) return null;
@@ -79,7 +83,11 @@ export function ImportModal({ open, onClose, onImport, exportCommander, exportCa
   const exportText = buildDeckListText(exportCommander, exportCards);
 
   const handleImport = async () => {
-    const { commanderName, entries } = parseDeckList(text);
+    await runImport(text);
+  };
+
+  const runImport = async (sourceText: string) => {
+    const { commanderName, entries } = parseDeckList(sourceText);
     if (entries.length === 0 && !commanderName) return;
 
     setImporting(true);
@@ -134,6 +142,31 @@ export function ImportModal({ open, onClose, onImport, exportCommander, exportCa
     setProgress('');
   };
 
+  const handleMoxfieldImport = async () => {
+    if (!moxfieldUrl.trim() || importing) return;
+    setImporting(true);
+    setOutcome(null);
+    setMoxfieldError(null);
+    try {
+      setProgress('Fetching deck from Moxfield…');
+      const res = await fetch(`/api/moxfield?url=${encodeURIComponent(moxfieldUrl.trim())}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? 'Moxfield fetch failed.');
+      const lines: string[] = [];
+      if (data.commander) lines.push(`Commander: ${data.commander}`);
+      for (const c of (data.cards ?? []) as { name: string; quantity: number }[]) {
+        lines.push(`${c.quantity} ${c.name}`);
+      }
+      if (lines.length === 0) throw new Error('That Moxfield deck came back empty.');
+      setProgress(`Found "${data.name ?? 'deck'}" — resolving cards…`);
+      await runImport(lines.join('\n'));
+    } catch (err) {
+      setMoxfieldError(err instanceof Error ? err.message : 'Moxfield import failed.');
+      setImporting(false);
+      setProgress('');
+    }
+  };
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(exportText);
@@ -177,15 +210,15 @@ export function ImportModal({ open, onClose, onImport, exportCommander, exportCa
       >
         {/* Tabs */}
         <div className="flex border-b border-[#9d6b2e]">
-          {(['import', 'export'] as Tab[]).map(t => (
+          {(Object.keys(TAB_LABELS) as Tab[]).map(t => (
             <button
               key={t}
-              onClick={() => setTab(t)}
-              className={`flex-1 py-3 text-sm font-semibold capitalize transition-colors ${
+              onClick={() => { setTab(t); setOutcome(null); setMoxfieldError(null); }}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
                 tab === t ? 'bg-[#c8a951] text-[#0f0f1a]' : 'text-[#c8a951] hover:bg-[#1e2035]'
               }`}
             >
-              {t}
+              {TAB_LABELS[t]}
             </button>
           ))}
           <button onClick={close} className="px-4 text-gray-500 hover:text-gray-300 text-xl leading-none">×</button>
@@ -240,6 +273,57 @@ export function ImportModal({ open, onClose, onImport, exportCommander, exportCa
                 className="flex-1 bg-[#9d6b2e] hover:bg-[#c8a951] hover:text-[#0f0f1a] text-white px-4 py-2.5 rounded font-semibold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {importing ? 'Importing…' : 'Import Deck'}
+              </button>
+              {outcome && (
+                <button
+                  onClick={close}
+                  className="bg-[#1e2035] hover:bg-[#2a2a4a] text-[#c8a951] border border-[#9d6b2e] px-4 py-2.5 rounded text-sm transition-colors"
+                >
+                  Done
+                </button>
+              )}
+            </div>
+            {importing && progress && <p className="text-xs text-gray-500">{progress}</p>}
+          </div>
+        ) : tab === 'moxfield' ? (
+          <div className="p-4 flex flex-col gap-3 overflow-y-auto">
+            <p className="text-xs text-gray-400">
+              Paste a public Moxfield deck URL and the whole list — commander included — comes in through the same validator.
+            </p>
+            <input
+              type="url"
+              value={moxfieldUrl}
+              onChange={e => setMoxfieldUrl(e.target.value)}
+              placeholder="https://www.moxfield.com/decks/…"
+              className="w-full bg-[#0f0f1a] border border-[#9d6b2e] rounded p-3 text-sm text-[#e8e0d0] focus:outline-none focus:border-[#c8a951]"
+            />
+            {moxfieldError && (
+              <p className="text-xs text-red-400 bg-red-950/30 border border-red-900 rounded p-2">{moxfieldError}</p>
+            )}
+            {outcome && (
+              <div className="text-xs bg-[#0f0f1a] border border-[#2a2a4a] rounded p-3">
+                <p className="text-green-400 font-semibold mb-1">
+                  Added {outcome.commander ? 1 : 0} commander + {outcome.cards.length} card{outcome.cards.length === 1 ? '' : 's'}
+                </p>
+                {outcome.skipped.length > 0 && (
+                  <div className="mt-1">
+                    <p className="text-amber-400 font-semibold">Skipped ({outcome.skipped.length}):</p>
+                    <ul className="text-gray-400 mt-1 space-y-0.5">
+                      {outcome.skipped.map((s, idx) => (
+                        <li key={idx}>{s.name} — {s.reason}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={handleMoxfieldImport}
+                disabled={importing || !moxfieldUrl.trim()}
+                className="flex-1 bg-[#9d6b2e] hover:bg-[#c8a951] hover:text-[#0f0f1a] text-white px-4 py-2.5 rounded font-semibold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {importing ? 'Importing…' : 'Import from Moxfield'}
               </button>
               {outcome && (
                 <button

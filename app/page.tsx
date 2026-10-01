@@ -71,15 +71,27 @@ export default function Home() {
 
   useEffect(() => {
     setSavedDecks(loadSavedDecks());
-    // Deep link from the Explore page: ?commander=<exact card name>
+    // Deep links: ?commander=<exact name> (Explore "Build around") and
+    // ?card=<exact name> (Briefing "Open in builder").
     try {
-      const name = new URLSearchParams(window.location.search).get('commander');
-      if (name) {
-        fetchCardByExactName(name).then(card => {
+      const params = new URLSearchParams(window.location.search);
+      const commanderName = params.get('commander');
+      const cardName = params.get('card');
+      if (commanderName) {
+        fetchCardByExactName(commanderName).then(card => {
           if (card) {
             setCommander(card);
             setSelected(card);
             setMode('cards');
+          }
+        });
+        window.history.replaceState(null, '', window.location.pathname);
+      } else if (cardName) {
+        fetchCardByExactName(cardName).then(card => {
+          if (card) {
+            setSelected(card);
+            setMode('cards');
+            setMobileTab('card');
           }
         });
         window.history.replaceState(null, '', window.location.pathname);
@@ -303,6 +315,18 @@ export default function Home() {
       {/* Header */}
       <header className="flex-shrink-0 bg-[#1a1a2e] border-b border-[#c8a951] px-3 md:px-4 py-2.5 flex flex-wrap items-center gap-2">
         <span className="text-[#c8a951] font-bold text-base md:text-lg mr-1">⚔ MTG Commander Deck Builder</span>
+        <Link
+          href="/briefing"
+          className="bg-[#1e2035] hover:bg-[#2a2a4a] text-[#c8a951] border border-[#9d6b2e] px-3 py-1.5 md:py-1 rounded text-sm transition-colors"
+        >
+          ✨ Briefing
+        </Link>
+        <Link
+          href="/library"
+          className="bg-[#1e2035] hover:bg-[#2a2a4a] text-[#c8a951] border border-[#9d6b2e] px-3 py-1.5 md:py-1 rounded text-sm transition-colors"
+        >
+          ★ Library
+        </Link>
         <Link
           href="/explore"
           className="bg-[#1e2035] hover:bg-[#2a2a4a] text-[#c8a951] border border-[#9d6b2e] px-3 py-1.5 md:py-1 rounded text-sm transition-colors"

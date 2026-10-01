@@ -58,6 +58,37 @@ function ManaCurve({ cards }: { cards: DeckCard[] }) {
   );
 }
 
+function TypeDistribution({ cards }: { cards: DeckCard[] }) {
+  const counts: Record<string, number> = {};
+  for (const { card, quantity } of cards) {
+    const type = getCardType(card.type_line);
+    counts[type] = (counts[type] ?? 0) + quantity;
+  }
+  const entries = TYPE_ORDER.filter(t => counts[t] > 0);
+  if (entries.length === 0) return null;
+  const max = Math.max(...entries.map(t => counts[t]), 1);
+
+  return (
+    <div className="mt-3 border-t border-[#2a2a4a] pt-3">
+      <div className="text-xs text-gray-500 mb-2 font-semibold uppercase tracking-wide">Card Types</div>
+      <div className="space-y-1">
+        {entries.map(type => (
+          <div key={type} className="flex items-center gap-2">
+            <span className="text-[10px] text-gray-500 w-24 flex-shrink-0">{type}</span>
+            <div className="flex-1 bg-[#0f0f1a] rounded-full h-1.5">
+              <div
+                className="h-1.5 rounded-full bg-[#9d6b2e]"
+                style={{ width: `${(counts[type] / max) * 100}%` }}
+              />
+            </div>
+            <span className="text-[10px] text-gray-400 w-6 text-right">{counts[type]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function DeckStats({ commander, cards }: { commander: ScryfallCard | null; cards: DeckCard[] }) {
   let total = 0;
   let cmcSum = 0;
@@ -301,10 +332,11 @@ export function DeckPanel({ commander, cards, totalCards, checks, onSelectCard, 
           </div>
         )}
 
-        {/* Mana curve */}
+        {/* Mana curve + type distribution */}
         {cards.length > 0 && (
           <div className="px-3 pb-1">
             <ManaCurve cards={cards} />
+            <TypeDistribution cards={cards} />
           </div>
         )}
 

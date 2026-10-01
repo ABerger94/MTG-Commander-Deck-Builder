@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { ScryfallCard } from '@/types/mtg';
 import { getCardImage, getManaCost } from '@/lib/scryfall';
 import { ManaCost } from './ManaCost';
+import { StarButton } from './StarButton';
 
 interface Props {
   card: ScryfallCard | null;
@@ -58,7 +59,15 @@ export function CardDetail({ card, commander, inDeck, deckCount, totalCards, add
       <div className="max-w-2xl mx-auto">
         <div className="flex flex-col md:flex-row gap-6">
           {/* Card image */}
-          <div className="flex-shrink-0 mx-auto md:mx-0">
+          <div className="flex-shrink-0 mx-auto md:mx-0 relative">
+            <div className="absolute top-2 left-2 z-10">
+              <StarButton
+                cardId={card.id}
+                name={card.name}
+                imageSmall={getCardImage(card, 'small')}
+                imageNormal={getCardImage(card, 'normal')}
+              />
+            </div>
             {imageUrl ? (
               <Image
                 src={imageUrl}

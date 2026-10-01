@@ -66,3 +66,84 @@ export interface ScryfallSet {
   icon_svg_uri: string;
   search_uri: string;
 }
+
+/* ---------- AI Deck Briefing (Commander Deck Assistant) ---------- */
+
+export interface BriefingPillar {
+  name: string;
+  explanation: string;
+  expansionCards: string[];
+}
+
+export interface BriefingDeckPlan {
+  primaryGamePlan: string;
+  mechanicalPillars: BriefingPillar[];
+  themesToAvoid: string[];
+  deckRatios: {
+    creatures: number;
+    spells: number;
+    manaBase: number;
+    interaction: number;
+    cardAdvantage: number;
+  };
+}
+
+export interface CardSuggestion {
+  name: string;
+  role: string;
+  rationale: string;
+  pillar: string;
+  imageSmall: string | null;
+  imageNormal: string | null;
+  verified: boolean;
+  /** Original LLM-provided name when Scryfall autocorrected it. */
+  correctedFrom?: string;
+  tcgplayerId: number | null;
+  scryfallUsd: string | null;
+  scryfallUri?: string;
+}
+
+export interface BriefingSuggestions {
+  ramp: CardSuggestion[];
+  draw: CardSuggestion[];
+  removal: CardSuggestion[];
+  wincons: CardSuggestion[];
+  synergies: CardSuggestion[];
+  creatures: CardSuggestion[];
+  manaBase: CardSuggestion[];
+  upgrades: CardSuggestion[];
+  cardsToConsider: CardSuggestion[];
+}
+
+export interface WinLine {
+  title: string;
+  explanation: string;
+  steps: string[];
+  keyCards: CardSuggestion[];
+}
+
+export interface Briefing {
+  commanderName: string;
+  partnerName?: string | null;
+  notes?: string;
+  deckPlan: BriefingDeckPlan;
+  suggestions: BriefingSuggestions;
+  winconStrategies: WinLine[];
+  considerationsAndCautions: string;
+  generatedAt: number;
+}
+
+export interface SavedBriefing {
+  id: string;
+  commanderName: string;
+  createdAt: number;
+  briefing: Briefing;
+}
+
+export interface StarredCard {
+  id: string;
+  name: string;
+  imageSmall: string | null;
+  imageNormal: string | null;
+  starredAt: number;
+}

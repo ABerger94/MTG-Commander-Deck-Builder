@@ -4,11 +4,27 @@ const BASE = 'https://api.scryfall.com';
 
 let lastRequest = 0;
 
+/** Scryfall rejects generic HTTP-library User-Agents; identify ourselves server-side. */
+function scryfallHeaders(): Record<string, string> {
+  if (typeof window === 'undefined') {
+    return { 'User-Agent': 'MTG-Commander-Deck-Builder/1.0 (https://github.com/ABerger94/MTG-Commander-Deck-Builder)' };
+  }
+  return {};
+}
+
 async function throttledFetch(url: string): Promise<Response> {
   const gap = Date.now() - lastRequest;
   if (gap < 100) await new Promise(r => setTimeout(r, 100 - gap));
   lastRequest = Date.now();
-  return fetch(url);
+  return fetch(url, { headers: scryfallHeaders() });
+}
+
+/**
+ * encodeURIComponent leaves ' ( ) ! ~ * unescaped, and Scryfall's
+ * /cards/named endpoint 400s on a raw apostrophe (e.g. "Atraxa, Praetors' Voice").
+ */
+export function scryfallEncode(s: string): string {
+  return encodeURIComponent(s).replace(/'/g, '%27');
 }
 
 export async function searchCards(query: string, colorIdentity?: string[]): Promise<ScryfallCard[]> {
@@ -52,7 +68,7 @@ export async function searchCommanders(query: string): Promise<ScryfallCard[]> {
 export async function fetchCardByExactName(name: string): Promise<ScryfallCard | null> {
   if (!name.trim()) return null;
   try {
-    const res = await throttledFetch(`${BASE}/cards/named?exact=${encodeURIComponent(name.trim())}`);
+    const res = await throttledFetch(`${BASE}/cards/named?exact=${scryfallEncode(name.trim())}`);
     if (!res.ok) return null;
     return (await res.json()) as ScryfallCard;
   } catch {

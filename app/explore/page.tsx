@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ScryfallCard, ScryfallSet } from '@/types/mtg';
 import { fetchSets, fetchRandomCommander, searchCardsInSet, getCardImage } from '@/lib/scryfall';
 import { ManaCost } from '@/components/ManaCost';
+import { StarButton } from '@/components/StarButton';
 
 type Tab = 'sets' | 'cards' | 'random';
 
@@ -112,6 +113,20 @@ export default function Explore() {
         </Link>
         <span className="text-[#c8a951] font-bold text-base md:text-lg">🔍 Explore Magic</span>
         <span className="text-xs text-gray-500 hidden md:inline">sets, cards & random commanders</span>
+        <span className="ml-auto flex items-center gap-2">
+          <Link
+            href="/briefing"
+            className="bg-[#1e2035] hover:bg-[#2a2a4a] text-[#c8a951] border border-[#9d6b2e] px-3 py-1.5 rounded text-sm transition-colors"
+          >
+            ✨ Briefing
+          </Link>
+          <Link
+            href="/library"
+            className="bg-[#1e2035] hover:bg-[#2a2a4a] text-[#c8a951] border border-[#9d6b2e] px-3 py-1.5 rounded text-sm transition-colors"
+          >
+            ★ Library
+          </Link>
+        </span>
       </header>
 
       {/* Tabs */}
@@ -220,7 +235,16 @@ export default function Explore() {
                 <div className="md:w-72 flex-shrink-0 bg-[#1a1a2e] border border-[#9d6b2e] rounded-lg p-4 h-fit md:sticky md:top-24">
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <h2 className="text-base font-bold text-[#c8a951]">{selectedCard.name}</h2>
-                    <button onClick={() => setSelectedCard(null)} className="text-gray-500 hover:text-gray-300">×</button>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <StarButton
+                        cardId={selectedCard.id}
+                        name={selectedCard.name}
+                        imageSmall={getCardImage(selectedCard, 'small')}
+                        imageNormal={getCardImage(selectedCard, 'normal')}
+                        className="w-7 h-7"
+                      />
+                      <button onClick={() => setSelectedCard(null)} className="text-gray-500 hover:text-gray-300">×</button>
+                    </div>
                   </div>
                   <div className="mb-2"><ManaCost cost={selectedCard.mana_cost ?? selectedCard.card_faces?.[0]?.mana_cost ?? ''} /></div>
                   <p className="text-xs text-gray-400 mb-2">{selectedCard.type_line}</p>
