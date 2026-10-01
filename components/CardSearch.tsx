@@ -26,12 +26,12 @@ const RARITY_COLOR: Record<string, string> = {
 
 export function CardSearch({ mode, query, results, searching, commander, onQueryChange, onModeChange, onSelectCard }: Props) {
   return (
-    <div className="w-72 flex-shrink-0 flex flex-col bg-[#1a1a2e] border-r border-[#9d6b2e]">
+    <div className="w-full md:w-72 md:flex-shrink-0 flex flex-col bg-[#1a1a2e] md:border-r border-[#9d6b2e]">
       {/* Mode tabs */}
       <div className="flex border-b border-[#9d6b2e]">
         <button
           onClick={() => onModeChange('commander')}
-          className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
+          className={`flex-1 py-3 md:py-2.5 text-sm font-semibold transition-colors ${
             mode === 'commander'
               ? 'bg-[#c8a951] text-[#0f0f1a]'
               : 'text-[#c8a951] hover:bg-[#1e2035]'
@@ -41,7 +41,7 @@ export function CardSearch({ mode, query, results, searching, commander, onQuery
         </button>
         <button
           onClick={() => onModeChange('cards')}
-          className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
+          className={`flex-1 py-3 md:py-2.5 text-sm font-semibold transition-colors ${
             mode === 'cards'
               ? 'bg-[#c8a951] text-[#0f0f1a]'
               : 'text-[#c8a951] hover:bg-[#1e2035]'
@@ -62,7 +62,7 @@ export function CardSearch({ mode, query, results, searching, commander, onQuery
             value={query}
             onChange={e => onQueryChange(e.target.value)}
             placeholder={mode === 'commander' ? 'Search commanders...' : 'Search cards...'}
-            className="w-full bg-[#0f0f1a] border border-[#9d6b2e] text-[#e8e0d0] placeholder-gray-600 px-3 py-2 pr-8 rounded text-sm focus:outline-none focus:border-[#c8a951]"
+            className="w-full bg-[#0f0f1a] border border-[#9d6b2e] text-[#e8e0d0] placeholder-gray-600 px-3 py-2.5 md:py-2 pr-8 rounded text-base md:text-sm focus:outline-none focus:border-[#c8a951]"
           />
           {query && (
             <button
@@ -94,7 +94,7 @@ export function CardSearch({ mode, query, results, searching, commander, onQuery
           <button
             key={card.id}
             onClick={() => onSelectCard(card)}
-            className="w-full text-left px-3 py-2 border-b border-[#1e2035] hover:bg-[#1e2035] transition-colors"
+            className="w-full text-left px-3 py-3 md:py-2 border-b border-[#1e2035] hover:bg-[#1e2035] transition-colors"
           >
             <div className="flex items-start justify-between gap-1">
               <span className={`text-sm font-medium truncate ${RARITY_COLOR[card.rarity] ?? 'text-[#e8e0d0]'}`}>

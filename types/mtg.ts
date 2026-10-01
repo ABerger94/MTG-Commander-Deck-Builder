@@ -47,3 +47,22 @@ export interface DeckCard {
   card: ScryfallCard;
   quantity: number;
 }
+
+export interface SavedDeck {
+  id: string;
+  name: string;
+  commander: ScryfallCard | null;
+  cards: DeckCard[];
+  updatedAt: number;
+}
+
+export interface ScryfallSet {
+  id: string;
+  code: string;
+  name: string;
+  set_type: string;
+  released_at: string | null;
+  card_count: number;
+  icon_svg_uri: string;
+  search_uri: string;
+}

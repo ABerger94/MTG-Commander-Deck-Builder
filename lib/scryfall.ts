@@ -1,4 +1,4 @@
-import { ScryfallCard } from '@/types/mtg';
+import { ScryfallCard, ScryfallSet } from '@/types/mtg';
 
 const BASE = 'https://api.scryfall.com';
 
@@ -48,6 +48,18 @@ export async function searchCommanders(query: string): Promise<ScryfallCard[]> {
   }
 }
 
+/** Exact-name lookup, used by the decklist importer. Returns null when not found. */
+export async function fetchCardByExactName(name: string): Promise<ScryfallCard | null> {
+  if (!name.trim()) return null;
+  try {
+    const res = await throttledFetch(`${BASE}/cards/named?exact=${encodeURIComponent(name.trim())}`);
+    if (!res.ok) return null;
+    return (await res.json()) as ScryfallCard;
+  } catch {
+    return null;
+  }
+}
+
 export function getCardImage(card: ScryfallCard, size = 'normal'): string | null {
   const uris = card.image_uris ?? card.card_faces?.[0]?.image_uris;
   if (!uris) return null;
@@ -56,6 +68,13 @@ export function getCardImage(card: ScryfallCard, size = 'normal'): string | null
 
 export function isBasicLand(card: ScryfallCard): boolean {
   return /\bBasic\b/.test(card.type_line);
+}
+
+/** True when every color in the card's color identity is also in the commander's. */
+export function isWithinColorIdentity(card: ScryfallCard, commander: ScryfallCard | null): boolean {
+  if (!commander) return true;
+  const identity = new Set(commander.color_identity);
+  return card.color_identity.every(c => identity.has(c));
 }
 
 export function getManaCost(card: ScryfallCard): string {
@@ -78,3 +97,42 @@ export const TYPE_ORDER = ['Creatures', 'Planeswalkers', 'Instants', 'Sorceries'
 export const COLOR_NAMES: Record<string, string> = {
   W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green',
 };
+
+/** Fetch every Scryfall set, newest first. */
+export async function fetchSets(): Promise<ScryfallSet[]> {
+  try {
+    const res = await throttledFetch(`${BASE}/sets`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const sets = (data.data ?? []) as ScryfallSet[];
+    return sets.sort((a, b) => (b.released_at ?? '').localeCompare(a.released_at ?? ''));
+  } catch {
+    return [];
+  }
+}
+
+/** Fetch a random legal commander — for discovering new commanders to build around. */
+export async function fetchRandomCommander(): Promise<ScryfallCard | null> {
+  try {
+    const res = await throttledFetch(`${BASE}/cards/random?q=${encodeURIComponent('is:commander legal:commander')}`);
+    if (!res.ok) return null;
+    return (await res.json()) as ScryfallCard;
+  } catch {
+    return null;
+  }
+}
+
+/** Search cards, optionally restricted to a set code (e.g. "dmu"). */
+export async function searchCardsInSet(query: string, setCode?: string): Promise<ScryfallCard[]> {
+  const q = query.trim();
+  if (!q && !setCode) return [];
+  const search = setCode ? `${q ? q + ' ' : ''}e:${setCode}` : q;
+  try {
+    const res = await throttledFetch(`${BASE}/cards/search?q=${encodeURIComponent(search)}&order=name&unique=cards`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.data ?? []) as ScryfallCard[];
+  } catch {
+    return [];
+  }
+}

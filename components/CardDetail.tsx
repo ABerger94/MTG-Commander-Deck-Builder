@@ -11,6 +11,8 @@ interface Props {
   inDeck: boolean;
   deckCount: number;
   totalCards: number;
+  /** Non-null when the card cannot be added right now; shown as inline feedback. */
+  addBlockReason: string | null;
   onSetCommander: (card: ScryfallCard) => void;
   onAddCard: (card: ScryfallCard) => void;
   onRemoveCard: (id: string) => void;
@@ -31,10 +33,10 @@ const COLOR_BADGE: Record<string, string> = {
   G: 'bg-green-700 text-white',
 };
 
-export function CardDetail({ card, commander, inDeck, deckCount, totalCards, onSetCommander, onAddCard, onRemoveCard }: Props) {
+export function CardDetail({ card, commander, inDeck, deckCount, totalCards, addBlockReason, onSetCommander, onAddCard, onRemoveCard }: Props) {
   if (!card) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#0f0f1a]">
+      <div className="w-full flex-1 flex items-center justify-center bg-[#0f0f1a]">
         <div className="text-center text-gray-600 max-w-xs">
           <div className="text-6xl mb-4">⚔</div>
           <p className="text-lg font-semibold text-gray-500">Select a card to view details</p>
@@ -48,27 +50,26 @@ export function CardDetail({ card, commander, inDeck, deckCount, totalCards, onS
   const manaCost = getManaCost(card);
   const isCommander = commander?.id === card.id;
   const canBeCommander = card.legalities.commander === 'legal';
-  const isAtLimit = totalCards >= 100;
   const rarityStyle = RARITY_STYLES[card.rarity] ?? 'text-gray-400 border-gray-400';
   const oracleText = card.oracle_text ?? card.card_faces?.map(f => f.oracle_text).join('\n—\n') ?? '';
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#0f0f1a] p-6">
+    <div className="w-full flex-1 overflow-y-auto bg-[#0f0f1a] p-4 md:p-6">
       <div className="max-w-2xl mx-auto">
         <div className="flex flex-col md:flex-row gap-6">
           {/* Card image */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 mx-auto md:mx-0">
             {imageUrl ? (
               <Image
                 src={imageUrl}
                 alt={card.name}
                 width={265}
                 height={370}
-                className="rounded-xl shadow-2xl shadow-black"
+                className="rounded-xl shadow-2xl shadow-black w-56 md:w-[265px] h-auto"
                 priority
               />
             ) : (
-              <div className="w-[265px] h-[370px] bg-[#1a1a2e] rounded-xl border border-[#9d6b2e] flex items-center justify-center text-gray-600">
+              <div className="w-56 md:w-[265px] h-[310px] md:h-[370px] bg-[#1a1a2e] rounded-xl border border-[#9d6b2e] flex items-center justify-center text-gray-600">
                 No Image
               </div>
             )}
@@ -128,7 +129,7 @@ export function CardDetail({ card, commander, inDeck, deckCount, totalCards, onS
               ) : canBeCommander ? (
                 <button
                   onClick={() => onSetCommander(card)}
-                  className="bg-[#9d6b2e] hover:bg-[#c8a951] text-white hover:text-[#0f0f1a] px-4 py-2 rounded font-semibold text-sm transition-colors"
+                  className="bg-[#9d6b2e] hover:bg-[#c8a951] text-white hover:text-[#0f0f1a] px-4 py-2.5 md:py-2 rounded font-semibold text-sm transition-colors"
                 >
                   Set as Commander
                 </button>
@@ -140,15 +141,15 @@ export function CardDetail({ card, commander, inDeck, deckCount, totalCards, onS
                     <div className="flex items-center gap-1 bg-[#1a1a2e] border border-[#9d6b2e] rounded overflow-hidden">
                       <button
                         onClick={() => onRemoveCard(card.id)}
-                        className="px-3 py-2 text-[#c8a951] hover:bg-[#2a2a4a] font-bold text-lg leading-none transition-colors"
+                        className="px-4 md:px-3 py-2.5 md:py-2 text-[#c8a951] hover:bg-[#2a2a4a] font-bold text-lg leading-none transition-colors"
                       >
                         −
                       </button>
                       <span className="px-2 text-sm text-[#e8e0d0] font-semibold">{deckCount}</span>
                       <button
                         onClick={() => onAddCard(card)}
-                        disabled={isAtLimit}
-                        className="px-3 py-2 text-[#c8a951] hover:bg-[#2a2a4a] font-bold text-lg leading-none transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        disabled={addBlockReason !== null}
+                        className="px-4 md:px-3 py-2.5 md:py-2 text-[#c8a951] hover:bg-[#2a2a4a] font-bold text-lg leading-none transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         +
                       </button>
@@ -156,15 +157,20 @@ export function CardDetail({ card, commander, inDeck, deckCount, totalCards, onS
                   ) : (
                     <button
                       onClick={() => onAddCard(card)}
-                      disabled={isAtLimit || card.legalities.commander === 'banned'}
-                      className="bg-[#1a3a6e] hover:bg-blue-700 text-white px-4 py-2 rounded font-semibold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      disabled={addBlockReason !== null}
+                      className="bg-[#1a3a6e] hover:bg-blue-700 text-white px-4 py-2.5 md:py-2 rounded font-semibold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      {card.legalities.commander === 'banned' ? 'Banned' : isAtLimit ? 'Deck Full' : 'Add to Deck'}
+                      {addBlockReason === 'Banned in Commander' ? 'Banned' : addBlockReason === 'Deck is full (100 cards)' ? 'Deck Full' : 'Add to Deck'}
                     </button>
                   )}
                 </>
               )}
             </div>
+
+            {/* Inline validation feedback */}
+            {addBlockReason && !isCommander && (
+              <p className="mt-2 text-xs text-amber-400">{addBlockReason}</p>
+            )}
           </div>
         </div>
       </div>
